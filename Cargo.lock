@@ -6,6 +6,14 @@ version = 4
 name = "opens_cli"
 version = "0.1.0"
 dependencies = [
+ "opens_parser",
+ "opens_syntax",
+]
+
+[[package]]
+name = "opens_parser"
+version = "0.1.0"
+dependencies = [
  "opens_syntax",
 ]
 

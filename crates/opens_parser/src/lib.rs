@@ -51,7 +51,7 @@ mod tests {
 
     #[test]
     fn funcion_simple() {
-        let m = parse_ok("fn sumar(a: Int, b: Int) -> Int { return a + b }");
+        let m = parse_ok("fn sumar(a: Int, b: Int) -> Int { return a + b; }");
         assert_eq!(m.items.len(), 1);
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!("no es función");
@@ -66,7 +66,7 @@ mod tests {
     #[test]
     fn pub_tool_con_uses_y_capacidades() {
         let m = parse_ok(
-            "pub tool clima(ciudad: String) -> Result<Clima, Error> uses net, llm { return ok(1) }",
+            "pub tool clima(ciudad: String) -> Result<Clima, Error> uses net, llm { return ok(1); }",
         );
         assert!(m.items[0].is_pub);
         let ItemKind::Function(f) = &m.items[0].kind else {
@@ -83,7 +83,7 @@ mod tests {
 
     #[test]
     fn doc_comment_se_adjunta() {
-        let m = parse_ok("/// Suma dos números.\nfn s(a: Int, b: Int) -> Int { return a + b }");
+        let m = parse_ok("/// Suma dos números.\nfn s(a: Int, b: Int) -> Int { return a + b; }");
         assert_eq!(m.items[0].doc.as_deref(), Some("Suma dos números."));
     }
 
@@ -114,7 +114,7 @@ mod tests {
     fn referencias_punteros_y_box() {
         // Referencia inmutable, mutable, puntero crudo y heap.
         let m = parse_ok(
-            "fn f(a: &Int, b: &var Int, c: *Int, d: box String) -> Int { return 0 }",
+            "fn f(a: &Int, b: &var Int, c: *Int, d: box String) -> Int { return 0; }",
         );
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
@@ -128,7 +128,7 @@ mod tests {
     #[test]
     fn expresiones_de_memoria() {
         let m = parse_ok(
-            "fn f() { let p = &x; let q = &var y; let v = *p; let h = box 3; unsafe { let z = *q } }",
+            "fn f() { let p = &x; let q = &var y; let v = *p; let h = box 3; unsafe { let z = *q; } }",
         );
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
@@ -158,7 +158,7 @@ mod tests {
         let m = parse_ok(
             "trait Saludable { fn saludar(&self) -> String }\n\
              impl Saludable for Usuario {\n\
-               fn saludar(&self) -> String { return \"hola\" }\n\
+               fn saludar(&self) -> String { return \"hola\"; }\n\
              }",
         );
         let ItemKind::Trait(t) = &m.items[0].kind else {
@@ -191,7 +191,7 @@ mod tests {
     #[test]
     fn closures_y_tipo_funcion() {
         let m = parse_ok(
-            "fn f(g: fn(Int) -> Int) { let doble = fn(x) => x * 2; let s = fn(a: Int) { return a } }",
+            "fn f(g: fn(Int) -> Int) { let doble = fn(x) => x * 2; let s = fn(a: Int) { return a; }; }",
         );
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
@@ -206,7 +206,7 @@ mod tests {
 
     #[test]
     fn llamada_generica_ask() {
-        let m = parse_ok("fn f() { let r = await llm.ask<Resumen>(p)? }");
+        let m = parse_ok("fn f() { let r = await llm.ask<Resumen>(p)?; }");
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
         };
@@ -220,7 +220,7 @@ mod tests {
     #[test]
     fn menor_que_sigue_siendo_comparacion() {
         // `a < b` no debe confundirse con genéricos.
-        let m = parse_ok("fn f() { let c = a < b }");
+        let m = parse_ok("fn f() { let c = a < b; }");
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
         };
@@ -236,7 +236,7 @@ mod tests {
     #[test]
     fn match_con_variantes_y_comodin() {
         let m = parse_ok(
-            "fn f() { match estado {\n  .activo => uno()\n  .suspendido => dos()\n  _ => tres()\n} }",
+            "fn f() { match estado {\n  .activo => uno(),\n  .suspendido => dos(),\n  _ => tres(),\n} }",
         );
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
@@ -252,7 +252,7 @@ mod tests {
     #[test]
     fn struct_lit_y_condicion_no_chocan() {
         // En la condición del `if`, la `{` abre el bloque, no un struct.
-        let m = parse_ok("fn f() { if lista { return } let u = Usuario { nombre: \"x\" } }");
+        let m = parse_ok("fn f() { if lista { return; } let u = Usuario { nombre: \"x\" }; }");
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
         };
@@ -266,7 +266,7 @@ mod tests {
 
     #[test]
     fn string_con_interpolacion_parsea_expr() {
-        let m = parse_ok("fn f() { let s = \"hola {nombre.apellido}\" }");
+        let m = parse_ok("fn f() { let s = \"hola {nombre.apellido}\"; }");
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
         };
@@ -285,7 +285,7 @@ mod tests {
 
     #[test]
     fn for_await_stream() {
-        let m = parse_ok("fn f() { for await parte in llm.stream(p) { print(parte) } }");
+        let m = parse_ok("fn f() { for await parte in llm.stream(p) { print(parte); } }");
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
         };
@@ -329,7 +329,7 @@ mod tests {
 
     #[test]
     fn test_item() {
-        let m = parse_ok("test \"suma\" { assert sumar(2, 3) == 5 }");
+        let m = parse_ok("test \"suma\" { assert sumar(2, 3) == 5; }");
         let ItemKind::Test(t) = &m.items[0].kind else {
             panic!();
         };
@@ -339,7 +339,7 @@ mod tests {
 
     #[test]
     fn pipe_y_rango() {
-        let m = parse_ok("fn f() { let r = 0..10 |> map(doble) }");
+        let m = parse_ok("fn f() { let r = 0..10 |> map(doble); }");
         let ItemKind::Function(f) = &m.items[0].kind else {
             panic!();
         };
@@ -355,7 +355,7 @@ mod tests {
     fn recupera_y_sigue_tras_item_malo() {
         // Un ítem basura entre dos funciones válidas: se reporta uno y se
         // parsean las dos funciones.
-        let src = "fn a() { return 1 }  @#!?  fn b() { return 2 }";
+        let src = "fn a() { return 1; }  @#!?  fn b() { return 2; }";
         let r = parse(lex(src).tokens);
         // El lexer marca `#`; aun así el parser debe recuperar.
         let m = r.module;
@@ -370,7 +370,7 @@ mod tests {
     #[test]
     fn falta_tipo_de_retorno() {
         // `-> {` sin tipo produce E0203 pero no cuelga.
-        assert!(codes_of("fn f() -> { return 1 }").contains(&parser::codes::EXPECTED_TYPE));
+        assert!(codes_of("fn f() -> { return 1; }").contains(&parser::codes::EXPECTED_TYPE));
     }
 
     #[test]
@@ -381,10 +381,27 @@ mod tests {
     #[test]
     fn todos_los_codigos_de_sintaxis_tienen_explicacion() {
         for c in [
-            "E0201", "E0202", "E0203", "E0204", "E0205", "E0206", "E0207",
+            "E0201", "E0202", "E0203", "E0204", "E0205", "E0206", "E0207", "E0208",
         ] {
             assert!(parser::codes::explain(c).is_some(), "{c}");
         }
+    }
+
+    #[test]
+    fn falta_punto_y_coma() {
+        // Una sentencia sin `;` se reporta con arreglo automático.
+        let r = parse(lex("fn f() { let x = 1 let y = 2; }").tokens);
+        assert!(r.diagnostics.iter().any(|d| d.code == parser::codes::EXPECTED_SEMI));
+        // El arreglo inserta `;` y deja el código válido.
+        let fixed =
+            opens_syntax::diagnostic::apply_fixes("fn f() { let x = 1 let y = 2; }", &r.diagnostics);
+        assert!(parse(lex(&fixed).tokens).diagnostics.is_empty(), "quedó: {fixed}");
+    }
+
+    #[test]
+    fn sentencias_con_bloque_no_requieren_semi() {
+        // `if`/`while`/`for`/`match`/`unsafe` terminan en `}` sin `;`.
+        parse_ok("fn f() { if a { return 1; } while b { break; } unsafe { } }");
     }
 
     #[test]

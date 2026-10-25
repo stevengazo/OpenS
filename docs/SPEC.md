@@ -21,16 +21,17 @@ excepción para explicarse, se cambia el lenguaje, no la explicación.
 7. **Memoria explícita y por niveles** (ver §13): valor, referencia `&`
    verificada, y puntero crudo `*` solo dentro de `unsafe`.
 
-> **Separación de líneas.** OpenS no usa `;` al final de línea: **el salto de
-> línea termina la sentencia**. Por eso un encadenamiento (`a.b`, `f(x)`,
-> `v[i]`, `e?`) no cruza un salto de línea; para continuar en la línea
-> siguiente, deja un operador al final (`a +` ↵ `b`) o usa `|>`.
+> **Terminador de sentencias.** Cada sentencia termina en `;` (estilo C/Rust).
+> El salto de línea no tiene significado, así que una sentencia puede ocupar
+> varias líneas y varias sentencias pueden ir en una sola. Las construcciones
+> con bloque (`if`, `while`, `for`, `match`, `unsafe`) terminan en `}` y **no**
+> llevan `;`. Las ramas de un `match` se separan con `,`.
 
 ## 1. Léxico
 
 - Archivos UTF-8, extensión `.ops`.
 - Bloques con llaves `{ }`. La indentación no tiene significado.
-- No se usan `;` al final de línea (se permiten para varias sentencias en una línea).
+- Cada sentencia termina en `;`; el salto de línea no es significativo (ver recuadro arriba).
 - Comentarios: `// línea`, `/* bloque /* anidable */ */`, `/// documentación`.
 - Identificadores: letras Unicode, dígitos y `_` (no pueden empezar con dígito).
   Convención: `snake_case` para valores y funciones, `PascalCase` para tipos.
@@ -112,17 +113,17 @@ ejecución y se exportan al JSON Schema de las herramientas MCP.
 ## 3. Variables y funciones
 
 ```
-let x = 10          // inmutable
-var total = 0       // mutable
-total += x
+let x = 10;          // inmutable
+var total = 0;       // mutable
+total += x;
 
 fn sumar(a: Int, b: Int) -> Int {
-  return a + b
+  return a + b;
 }
 
 pub fn dividir(a: Float, b: Float) -> Result<Float, String> {
-  if b == 0.0 { return err("división entre cero") }
-  return ok(a / b)
+  if b == 0.0 { return err("división entre cero"); }
+  return ok(a / b);
 }
 ```
 
@@ -136,14 +137,14 @@ Las funciones son valores de primera clase. El tipo de una función es
 `fn(T, U) -> R`, y una **closure** se escribe con `fn`:
 
 ```
-let doble = fn(x) => x * 2           // cuerpo de una expresión
-let log   = fn(msg: String) { … }    // cuerpo de un bloque
+let doble = fn(x) => x * 2;          // cuerpo de una expresión
+let log   = fn(msg: String) { … };   // cuerpo de un bloque
 
 fn aplicar(xs: List<Int>, f: fn(Int) -> Int) -> List<Int> {
-  return xs.map(f)
+  return xs.map(f);
 }
 
-let r = aplicar([1, 2, 3], doble)
+let r = aplicar([1, 2, 3], doble);
 ```
 
 Con `|>` se encadena de izquierda a derecha, pasando el valor como primer
@@ -159,9 +160,9 @@ for i in 0..10 { … }
 while cola.len() > 0 { … }
 
 match estado {
-  .activo => print("ok")
-  .suspendido => print("pausa")
-  _ => print("otro")
+  .activo => print("ok"),
+  .suspendido => print("pausa"),
+  _ => print("otro"),
 }
 ```
 
@@ -173,19 +174,19 @@ Los errores son valores. `?` devuelve el error al llamador si lo hay:
 
 ```
 fn leer_config() -> Result<Config, Error> uses fs {
-  let texto = fs.read("config.json")?
-  let cfg = json.parse<Config>(texto)?
-  return ok(cfg)
+  let texto = fs.read("config.json")?;
+  let cfg = json.parse<Config>(texto)?;
+  return ok(cfg);
 }
 ```
 
 ## 6. Async y streams
 
 ```
-let r = await http.get(url)?
+let r = await http.get(url)?;
 
 for await parte in llm.stream(p) {
-  print(parte)
+  print(parte);
 }
 ```
 
@@ -220,7 +221,7 @@ prompt clasificar(texto: String, categorias: List<String>) {
 ### `llm.ask<T>`
 
 ```
-let r = await llm.ask<Resumen>(resumir(texto))?   // Result<Resumen, Error>
+let r = await llm.ask<Resumen>(resumir(texto))?;  // Result<Resumen, Error>
 ```
 
 El compilador genera el JSON Schema de `T`, pide salida estructurada al modelo y
@@ -245,8 +246,8 @@ server MiServidor {
   expose clima, resumir_url
 }
 
-let gh = await mcp.connect("https://ejemplo.com/mcp")?
-let r = await gh.call("buscar_issues", { "repo": "x/y" })?
+let gh = await mcp.connect("https://ejemplo.com/mcp")?;
+let r = await gh.call("buscar_issues", { "repo": "x/y" })?;
 ```
 
 ### `agent` (reservado, v0.5)
@@ -257,12 +258,12 @@ Bucle de modelo + herramientas con límites declarados (pasos, costo, capacidade
 
 ```
 test "suma básica" {
-  assert sumar(2, 3) == 5
+  assert sumar(2, 3) == 5;
 }
 
 test "resumen con modelo simulado" {
-  llm.mock(Resumen { titulo: "X", puntos: [], sentimiento: .neutral })
-  assert (await resumir_url("https://e.com")).is_ok()
+  llm.mock(Resumen { titulo: "X", puntos: [], sentimiento: .neutral });
+  assert (await resumir_url("https://e.com")).is_ok();
 }
 ```
 
@@ -319,8 +320,8 @@ es familiar para quien viene de C/C++, pero con niveles de seguridad explícitos
 **1. Por valor** (lo normal). Se mueve o se copia; el dueño es claro.
 
 ```
-let a = Punto { x: 1, y: 2 }
-let b = a            // `b` es ahora el dueño
+let a = Punto { x: 1, y: 2 };
+let b = a;           // `b` es ahora el dueño
 ```
 
 **2. Referencia `&T` / `&var T`** — un préstamo verificado por el compilador,
@@ -329,11 +330,11 @@ referencia inmutable; `&var x` una mutable. Reglas de préstamo: muchas `&T`
 a la vez, **o** una sola `&var T`.
 
 ```
-fn largo(s: &String) -> Int { return s.len() }   // no copia el string
-fn incrementar(n: &var Int) { *n += 1 }           // escribe a través de la ref
+fn largo(s: &String) -> Int { return s.len(); }  // no copia el string
+fn incrementar(n: &var Int) { *n += 1; }          // escribe a través de la ref
 
-var total = 0
-incrementar(&var total)                           // total == 1
+var total = 0;
+incrementar(&var total);                          // total == 1
 ```
 
 **3. Puntero crudo `*T`** — una dirección de memoria sin garantías, como en C++.
@@ -344,8 +345,8 @@ backend nativo; el código normal no lo necesita.
 extern "c" fn memcpy(dst: *Byte, src: *Byte, n: Int) uses ffi
 
 unsafe {
-  let p: *Int = &x as *Int   // tomar dirección como puntero crudo
-  let v = *p                 // desreferenciar
+  let p: *Int = &x as *Int;  // tomar dirección como puntero crudo
+  let v = *p;                // desreferenciar
 }
 ```
 
@@ -354,7 +355,7 @@ de propiedad única; se libera solo al salir de alcance (sin recolector de
 basura). Sirve para datos grandes o recursivos (`box Nodo`).
 
 ```
-let nodo = box Nodo { valor: 1, siguiente: none }
+let nodo = box Nodo { valor: 1, siguiente: none };
 ```
 
 | Forma | Sintaxis | Seguridad | Uso típico |
@@ -373,14 +374,14 @@ Los métodos se definen en un bloque `impl` sobre un `type`. El receptor es
 type Contador { valor: Int }
 
 impl Contador {
-  fn nuevo() -> Contador { return Contador { valor: 0 } }   // sin `self`: asociada
-  fn leer(&self) -> Int { return self.valor }
-  fn subir(&var self) { self.valor += 1 }
+  fn nuevo() -> Contador { return Contador { valor: 0 }; }  // sin `self`: asociada
+  fn leer(&self) -> Int { return self.valor; }
+  fn subir(&var self) { self.valor += 1; }
 }
 
-var c = Contador.nuevo()
-c.subir()
-print(c.leer())        // 1
+var c = Contador.nuevo();
+c.subir();
+print(c.leer());       // 1
 ```
 
 Un `trait` declara un contrato (interfaz) que varios tipos pueden implementar;
@@ -392,7 +393,7 @@ trait Resumible {
 }
 
 impl Resumible for Contador {
-  fn resumen(&self) -> String { return "Contador en {self.valor}" }
+  fn resumen(&self) -> String { return "Contador en {self.valor}"; }
 }
 ```
 

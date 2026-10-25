@@ -15,9 +15,9 @@ punteros crudos `*T` y heap con `box T`) para el código de bajo nivel.
 tool resumir_url(url: Url) -> Result<Resumen, Error>
   uses net, llm
 {
-  let pagina = await http.get(url)?
-  let r = await llm.ask<Resumen>(resumir(pagina.text))?
-  return ok(r)
+  let pagina = await http.get(url)?;
+  let r = await llm.ask<Resumen>(resumir(pagina.text))?;
+  return ok(r);
 }
 
 server Resumidor {

@@ -6,6 +6,7 @@
 //! clave cuando quien corrige es un agente de IA leyendo el JSON.
 
 use crate::ast::*;
+use opens_syntax::diagnostic::Fix;
 use opens_syntax::token::{Keyword, StrPart, Token, TokenKind};
 use opens_syntax::{Diagnostic, Span};
 
@@ -18,6 +19,7 @@ pub mod codes {
     pub const UNCLOSED_DELIM: &str = "E0205";
     pub const EXPECTED_IDENT: &str = "E0206";
     pub const EXPECTED_NAME: &str = "E0207";
+    pub const EXPECTED_SEMI: &str = "E0208";
 
     pub fn explain(code: &str) -> Option<&'static str> {
         Some(match code {
@@ -28,6 +30,7 @@ pub mod codes {
             UNCLOSED_DELIM => "Falta cerrar un delimitador: `)`, `}` o `]`.",
             EXPECTED_IDENT => "Se esperaba un identificador.",
             EXPECTED_NAME => "Se esperaba el nombre de una declaración.",
+            EXPECTED_SEMI => "Cada sentencia termina en `;`. Las construcciones con bloque (`if`, `while`, `for`, `match`, `unsafe`) no lo necesitan.",
             _ => return None,
         })
     }
@@ -96,11 +99,6 @@ impl Parser {
 
     fn at_eof(&self) -> bool {
         matches!(self.peek(), TokenKind::Eof)
-    }
-
-    /// ¿El token actual viene tras un salto de línea? (terminador implícito).
-    fn newline_before(&self) -> bool {
-        self.toks[self.pos].newline_before
     }
 
     fn at(&self, kind: &TokenKind) -> bool {
@@ -185,6 +183,56 @@ impl Parser {
             );
             false
         }
+    }
+
+    /// Nombre de un miembro tras `.` (campo o método). Acepta identificadores
+    /// y también palabras clave, porque los miembros viven en otro espacio de
+    /// nombres: `llm.stream(p)`, `x.type`, etc.
+    fn member_name(&mut self) -> Option<String> {
+        match self.peek().clone() {
+            TokenKind::Ident(n) => {
+                self.pos += 1;
+                Some(n)
+            }
+            TokenKind::Keyword(k) => {
+                self.pos += 1;
+                Some(k.as_str().to_string())
+            }
+            _ => {
+                self.error(
+                    codes::EXPECTED_IDENT,
+                    format!(
+                        "se esperaba el nombre de un campo o método pero se encontró {}",
+                        self.peek().describe()
+                    ),
+                    self.span(),
+                );
+                None
+            }
+        }
+    }
+
+    /// Exige el `;` que termina una sentencia. Si falta, lo reporta con un
+    /// arreglo automático que lo inserta al final de la sentencia anterior.
+    fn expect_semi(&mut self) {
+        if self.eat(&TokenKind::Semi) {
+            return;
+        }
+        let prev_end = self.prev_span().end;
+        let mut d = Diagnostic::error(
+            codes::EXPECTED_SEMI,
+            format!(
+                "falta `;` al final de la sentencia (se encontró {})",
+                self.peek().describe()
+            ),
+            self.span(),
+        )
+        .with_help("cada sentencia termina en `;`");
+        d.fix = Some(Fix {
+            span: Span::new(prev_end, prev_end),
+            replacement: ";".to_string(),
+        });
+        self.diags.push(d);
     }
 
     fn expect_ident(&mut self) -> Option<(String, Span)> {
@@ -411,9 +459,8 @@ impl Parser {
         self.bump(); // impl
         let generics = self.parse_generic_params();
         let (first, _) = self.expect_ident()?;
-        // `impl Trait for Tipo` o `impl Tipo`.
-        let (trait_name, type_name) = if self.at(&TokenKind::Ident("for".into())) {
-            self.pos += 1;
+        // `impl Trait for Tipo` o `impl Tipo` (`for` es palabra clave).
+        let (trait_name, type_name) = if self.eat_kw(Keyword::For) {
             let (ty, _) = self.expect_ident()?;
             (Some(first), ty)
         } else {
@@ -819,9 +866,15 @@ impl Parser {
         while !self.at(&TokenKind::RBrace) && !self.at_eof() {
             let before = self.pos;
             if let Some(s) = self.parse_stmt() {
+                // Las sentencias con bloque (`if`, `while`, `for`, `match`,
+                // `unsafe`) terminan en `}` y no necesitan `;`; el resto sí.
+                if stmt_needs_semi(&s.kind) {
+                    self.expect_semi();
+                } else {
+                    self.eat(&TokenKind::Semi); // `;` opcional tras un bloque
+                }
                 stmts.push(s);
             }
-            self.eat(&TokenKind::Semi); // separador opcional
             if self.pos == before {
                 // No se consumió nada: sincronizar para no colgarse.
                 self.sync_stmt();
@@ -1207,21 +1260,21 @@ impl Parser {
     fn parse_postfix(&mut self) -> Expr {
         let mut e = self.parse_primary();
         loop {
-            // Un encadenamiento (`.`, `(`, `[`, `?`) no cruza un salto de
-            // línea: ahí termina la expresión y empieza otra sentencia/rama.
-            if self.newline_before() {
-                break;
-            }
             match self.peek() {
                 TokenKind::Dot => {
                     self.pos += 1;
-                    // `.variante` como forma corta solo si `e` ya fue un error
-                    // no aplica; aquí es acceso a campo o método.
-                    let Some((name, _)) = self.expect_ident() else {
+                    let Some(name) = self.member_name() else {
                         break;
                     };
-                    if self.at(&TokenKind::LParen) || self.at(&TokenKind::Lt) {
-                        let generics = self.try_type_args_before_call();
+                    // Llamada a método: `recv.m(...)` o `recv.m<T>(...)`. Un `<`
+                    // que no forme una lista de genéricos seguida de `(` es una
+                    // comparación (`recv.campo < x`), así que queda como campo.
+                    let generics = if self.at(&TokenKind::Lt) {
+                        self.try_type_args_before_call()
+                    } else {
+                        Vec::new()
+                    };
+                    if self.at(&TokenKind::LParen) {
                         let args = self.parse_args();
                         let span = e.span.to(self.prev_span());
                         e = Expr {
@@ -1341,7 +1394,7 @@ impl Parser {
             let start = self.span();
             // Argumento con nombre: `ident:` (pero no `ident::` ni `==`).
             let name = if matches!(self.peek(), TokenKind::Ident(_))
-                && matches!(self.peek2(), TokenKind::Colon)
+                && matches!(self.peek2(), Some(TokenKind::Colon))
             {
                 let n = match self.peek().clone() {
                     TokenKind::Ident(n) => n,
@@ -1585,7 +1638,10 @@ impl Parser {
                 span: arm_start.to(self.prev_span()),
                 body,
             });
-            self.eat(&TokenKind::Comma);
+            // Las ramas se separan con `,` (la última puede omitirla).
+            if !self.at(&TokenKind::RBrace) {
+                self.expect(TokenKind::Comma, codes::UNEXPECTED_TOKEN);
+            }
             if self.pos == before {
                 self.pos += 1;
             }
@@ -1655,6 +1711,18 @@ impl Parser {
 }
 
 // ---------- helpers de construcción ----------
+
+/// ¿Esta sentencia necesita `;`? Las que terminan en un bloque no.
+fn stmt_needs_semi(kind: &StmtKind) -> bool {
+    !matches!(
+        kind,
+        StmtKind::If(_)
+            | StmtKind::While { .. }
+            | StmtKind::For { .. }
+            | StmtKind::Match(_)
+            | StmtKind::Unsafe(_)
+    )
+}
 
 fn lit(kind: ExprKind, span: Span) -> Expr {
     Expr { kind, span }

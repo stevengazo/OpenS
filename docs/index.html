@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenS — a language LLMs write well</title>
+<meta name="description" content="OpenS is a high-level, multi-paradigm programming language for building AI apps (agents, MCP servers, LLM pipelines), designed to be written well by LLMs and to compile to web, mobile and native.">
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f7f9;
+    --surface-2: #eef0f3;
+    --border: #e2e5ea;
+    --text: #1b1f24;
+    --muted: #5a626d;
+    --accent: #3b5bdb;
+    --accent-2: #0c8599;
+    --code-bg: #0f1222;
+    --code-text: #e7e9f3;
+    --code-key: #8ab4ff;
+    --code-str: #7ee0a7;
+    --code-com: #8891a6;
+    --code-type: #e3b341;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0c0e14;
+      --surface: #14171f;
+      --surface-2: #1b1f2a;
+      --border: #262b36;
+      --text: #e8eaf0;
+      --muted: #9aa3b2;
+      --accent: #8ab4ff;
+      --accent-2: #4dd4e8;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #0c0e14;
+    --surface: #14171f;
+    --surface-2: #1b1f2a;
+    --border: #262b36;
+    --text: #e8eaf0;
+    --muted: #9aa3b2;
+    --accent: #8ab4ff;
+    --accent-2: #4dd4e8;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font: 16px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+  a { color: var(--accent); text-decoration: none; }
+  a:hover { text-decoration: underline; }
+  .wrap { max-width: 920px; margin: 0 auto; padding: 0 16px; }
+
+  header.hero {
+    padding: 72px 0 56px;
+    background:
+      radial-gradient(1200px 400px at 50% -120px, color-mix(in srgb, var(--accent) 22%, transparent), transparent);
+    border-bottom: 1px solid var(--border);
+  }
+  .badge {
+    display: inline-block;
+    font-size: 13px; letter-spacing: .02em;
+    color: var(--accent-2);
+    border: 1px solid var(--border);
+    background: var(--surface);
+    padding: 4px 12px; border-radius: 999px;
+    margin-bottom: 20px;
+  }
+  h1 {
+    font-size: clamp(34px, 6vw, 56px);
+    line-height: 1.05; margin: 0 0 16px;
+    letter-spacing: -0.02em;
+  }
+  h1 .grad {
+    background: linear-gradient(90deg, var(--accent), var(--accent-2));
+    -webkit-background-clip: text; background-clip: text; color: transparent;
+  }
+  .lede { font-size: clamp(17px, 2.4vw, 20px); color: var(--muted); max-width: 44ch; }
+  .cta { margin-top: 28px; display: flex; gap: 12px; flex-wrap: wrap; }
+  .btn {
+    display: inline-block; padding: 11px 20px; border-radius: 10px;
+    font-weight: 600; font-size: 15px; border: 1px solid transparent;
+  }
+  .btn.primary { background: var(--accent); color: #fff; }
+  .btn.primary:hover { text-decoration: none; filter: brightness(1.05); }
+  .btn.ghost { border-color: var(--border); background: var(--surface); color: var(--text); }
+  .btn.ghost:hover { text-decoration: none; background: var(--surface-2); }
+
+  section { padding: 56px 0; border-bottom: 1px solid var(--border); }
+  h2 { font-size: clamp(24px, 4vw, 32px); margin: 0 0 8px; letter-spacing: -0.01em; }
+  .section-sub { color: var(--muted); margin: 0 0 28px; }
+
+  .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+  }
+  .card h3 { margin: 0 0 8px; font-size: 18px; }
+  .card p { margin: 0; color: var(--muted); font-size: 15px; }
+  .card .ico { font-size: 22px; margin-bottom: 10px; display: block; }
+
+  pre {
+    margin: 0; padding: 20px; border-radius: 14px;
+    background: var(--code-bg); color: var(--code-text);
+    overflow-x: auto; font-size: 14px; line-height: 1.55;
+    font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace;
+    border: 1px solid #1d2235;
+  }
+  code { font-family: "SF Mono", "JetBrains Mono", "Fira Code", Consolas, monospace; }
+  .k { color: var(--code-key); }
+  .s { color: var(--code-str); }
+  .c { color: var(--code-com); }
+  .t { color: var(--code-type); }
+
+  ol.road { list-style: none; counter-reset: step; padding: 0; margin: 0; }
+  ol.road li {
+    position: relative; padding: 14px 16px 14px 56px; margin-bottom: 10px;
+    background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+  }
+  ol.road li::before {
+    counter-increment: step; content: "0." counter(step);
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+    font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent-2);
+    font-size: 13px;
+  }
+  ol.road li.done { opacity: .72; }
+  ol.road li.done .tag { color: var(--code-str); }
+  ol.road li .tag { font-size: 12px; font-weight: 700; margin-left: 8px; color: var(--muted); }
+
+  .cmds code {
+    display: block; background: var(--surface-2); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; margin: 6px 0; color: var(--text); font-size: 13.5px;
+  }
+  .cmds .c { color: var(--muted); }
+
+  footer { padding: 40px 0 64px; color: var(--muted); font-size: 14px; }
+  footer a { color: var(--muted); text-decoration: underline; }
+</style>
+</head>
+<body>
+  <header class="hero">
+    <div class="wrap">
+      <span class="badge">v0.2 · lexer + parser (AST &amp; error recovery)</span>
+      <h1>The language <span class="grad">LLMs write well</span>.</h1>
+      <p class="lede">
+        OpenS is a high-level, multi-paradigm language for building AI software —
+        agents, MCP servers and clients, LLM pipelines — designed so models produce
+        correct code on the first try, and compiled to web, mobile and native.
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="#start">Get started</a>
+        <a class="btn ghost" href="SPEC.md">Read the spec</a>
+        <a class="btn ghost" href="https://github.com/USER/OpenS">GitHub</a>
+      </div>
+    </div>
+  </header>
+
+  <section>
+    <div class="wrap">
+      <h2>Why OpenS</h2>
+      <p class="section-sub">One language, three paradigms, with LLMs and portability as first-class goals.</p>
+      <div class="grid">
+        <div class="card">
+          <span class="ico">🧩</span>
+          <h3>Multi-paradigm</h3>
+          <p>Functional (closures, first-class functions, immutability, <code>|&gt;</code>),
+             imperative (<code>var</code>, loops, <code>unsafe</code>) and object-oriented
+             (<code>type</code> + <code>impl</code>, <code>trait</code>). They combine — no separate modes.</p>
+        </div>
+        <div class="card">
+          <span class="ico">🤖</span>
+          <h3>LLM-first</h3>
+          <p>Tools, MCP servers and typed prompts are built in. <code>llm.ask&lt;T&gt;</code>
+             generates a JSON Schema from <code>T</code>, requests structured output and validates it.</p>
+        </div>
+        <div class="card">
+          <span class="ico">⚙️</span>
+          <h3>C++-style memory</h3>
+          <p>Explicit, tiered: values, checked references <code>&amp;T</code> / <code>&amp;var T</code>,
+             heap <code>box T</code>, and raw pointers <code>*T</code> confined to <code>unsafe</code>.</p>
+        </div>
+        <div class="card">
+          <span class="ico">📐</span>
+          <h3>Explicit over implicit</h3>
+          <p>No implicit conversions, no surprise <code>null</code>, no invisible exceptions.
+             Effects are declared with <code>uses</code>, so a signature tells you what a function can do.</p>
+        </div>
+        <div class="card">
+          <span class="ico">🛠️</span>
+          <h3>Fixable diagnostics</h3>
+          <p>Every compiler error has a stable code, an exact location and, when possible, an
+             automatic fix — in human text and in JSON, so an agent can read, fix and recompile.</p>
+        </div>
+        <div class="card">
+          <span class="ico">🌐</span>
+          <h3>Portable by design</h3>
+          <p>One dependency-free frontend targets TypeScript (Node/Deno/Bun, MCP), WebAssembly
+             (browser, edge), native (Cranelift/LLVM) and mobile (iOS/Android via FFI).</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>A taste of OpenS</h2>
+      <p class="section-sub">A web page summarizer exposed as an MCP tool.</p>
+<pre><code><span class="c">/// Summarizes a web page with an LLM.</span>
+<span class="k">tool</span> summarize_url(url: <span class="t">Url</span>) -&gt; <span class="t">Result</span>&lt;<span class="t">Summary</span>, <span class="t">Error</span>&gt;
+  <span class="k">uses</span> net, llm
+{
+  <span class="k">let</span> page = <span class="k">await</span> http.get(url)?;
+  <span class="k">let</span> r = <span class="k">await</span> llm.ask&lt;<span class="t">Summary</span>&gt;(summarize(page.text))?;
+  <span class="k">return</span> ok(r);
+}
+
+<span class="k">server</span> <span class="t">Summarizer</span> {
+  <span class="k">expose</span> summarize_url
+}</code></pre>
+      <p class="section-sub" style="margin-top:20px">
+        Statements end in <code>;</code>; block constructs (<code>if</code>, <code>while</code>,
+        <code>for</code>, <code>match</code>, <code>unsafe</code>) end in <code>}</code>.
+      </p>
+    </div>
+  </section>
+
+  <section>
+    <div class="wrap">
+      <h2>Roadmap</h2>
+      <p class="section-sub">Where the compiler is and where it's going.</p>
+      <ol class="road">
+        <li class="done">Lexer, stable error codes, JSON output, <code>opens fix</code> <span class="tag">done</span></li>
+        <li class="done">Parser + AST + error recovery; multi-paradigm &amp; memory syntax <span class="tag">done</span></li>
+        <li>Type checking, <code>Result</code>, local inference, capabilities <span class="tag">next</span></li>
+        <li>TypeScript backend: <code>tool</code> / <code>server</code> → a real MCP server</li>
+        <li><code>ask&lt;T&gt;</code>, <code>prompt</code>, mocks &amp; traces; <code>opens test</code></li>
+        <li>LSP for VS Code + official formatter</li>
+        <li>WebAssembly backend + web playground</li>
+        <li>Native backend (Cranelift) + C/C++ FFI</li>
+        <li>Mobile bindings (iOS / Android)</li>
+      </ol>
+    </div>
+  </section>
+
+  <section id="start">
+    <div class="wrap">
+      <h2>Get started</h2>
+      <p class="section-sub">Requires <a href="https://rustup.rs">Rust</a>. File extension: <code>.ops</code>.</p>
+      <div class="cmds">
+        <code><span class="c"># run the tests</span><br>cargo test</code>
+        <code><span class="c"># check a file (lexing + syntax)</span><br>cargo run -- check examples/contador.ops</code>
+        <code><span class="c"># print the AST</span><br>cargo run -- parse examples/contador.ops</code>
+        <code><span class="c"># apply automatic fixes</span><br>cargo run -- fix examples/errores.ops</code>
+        <code><span class="c"># explain an error code</span><br>cargo run -- explain E0208</code>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <div class="wrap">
+      OpenS — MIT License © 2026 Steven Gazo Maliaño.
+      · <a href="SPEC.md">Language spec</a>
+      · <a href="https://github.com/USER/OpenS">Source</a>
+    </div>
+  </footer>
+</body>
+</html>

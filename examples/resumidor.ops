@@ -20,9 +20,9 @@ prompt resumir(texto: String) {
 tool resumir_url(url: Url) -> Result<Resumen, Error>
   uses net, llm
 {
-  let pagina = await http.get(url)?
-  let r = await llm.ask<Resumen>(resumir(pagina.text))?
-  return ok(r)
+  let pagina = await http.get(url)?;
+  let r = await llm.ask<Resumen>(resumir(pagina.text))?;
+  return ok(r);
 }
 
 server Resumidor {
@@ -30,7 +30,7 @@ server Resumidor {
 }
 
 test "resume una página" {
-  llm.mock(Resumen { titulo: "X", puntos: ["a"], sentimiento: .neutral })
-  let r = await resumir_url("https://ejemplo.com")
-  assert r.is_ok() and r.value.puntos.len() <= 5
+  llm.mock(Resumen { titulo: "X", puntos: ["a"], sentimiento: .neutral });
+  let r = await resumir_url("https://ejemplo.com");
+  assert r.is_ok() and r.value.puntos.len() <= 5;
 }
