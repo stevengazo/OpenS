@@ -1,0 +1,10 @@
+[package]
+name = "opens_syntax"
+description = "Lexer, tokens y diagnósticos del lenguaje OpenS"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Sin dependencias a propósito: este crate debe compilar igual en
+# x86/ARM nativo, wasm32 (navegador, playground) e iOS/Android.
+[dependencies]

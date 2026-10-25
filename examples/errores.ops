@@ -1,0 +1,12 @@
+// Código escrito "con costumbres de JavaScript".
+// Prueba: opens check examples/errores.ops   y luego   opens fix examples/errores.ops
+fn contar(items: List<Int>) -> Int {
+  var total = 0
+  for x in items {
+    if x > 0 && x !== 13 {
+      total++
+    }
+  }
+  let saludo = 'listo'
+  return total
+}

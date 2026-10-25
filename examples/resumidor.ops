@@ -1,0 +1,36 @@
+/// Servidor MCP que resume páginas web con un LLM.
+import mcp
+import llm
+import http
+
+type Resumen {
+  titulo: String
+  puntos: List<String> @max(5)
+  sentimiento: enum { positivo, neutral, negativo }
+}
+
+prompt resumir(texto: String) {
+  """
+  Resume el siguiente texto en español, en máximo 5 puntos.
+  Texto: {texto}
+  """
+}
+
+/// Descarga una página y devuelve un resumen estructurado.
+tool resumir_url(url: Url) -> Result<Resumen, Error>
+  uses net, llm
+{
+  let pagina = await http.get(url)?
+  let r = await llm.ask<Resumen>(resumir(pagina.text))?
+  return ok(r)
+}
+
+server Resumidor {
+  expose resumir_url
+}
+
+test "resume una página" {
+  llm.mock(Resumen { titulo: "X", puntos: ["a"], sentimiento: .neutral })
+  let r = await resumir_url("https://ejemplo.com")
+  assert r.is_ok() and r.value.puntos.len() <= 5
+}

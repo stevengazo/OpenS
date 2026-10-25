@@ -1,0 +1,13 @@
+[package]
+name = "opens_cli"
+description = "Herramienta de línea de comandos de OpenS"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "opens"
+path = "src/main.rs"
+
+[dependencies]
+opens_syntax = { path = "../opens_syntax" }
