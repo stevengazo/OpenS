@@ -19,6 +19,7 @@ pub fn lex(src: &str) -> LexResult {
         src,
         pos: 0,
         diags: Vec::new(),
+        saw_newline: true, // el primer token "viene tras un salto de línea".
     };
     let mut tokens = Vec::new();
     loop {
@@ -39,6 +40,8 @@ struct Lexer<'a> {
     src: &'a str,
     pos: usize,
     diags: Vec<Diagnostic>,
+    /// Se activa cuando se salta un salto de línea; el próximo token lo lee.
+    saw_newline: bool,
 }
 
 impl<'a> Lexer<'a> {
@@ -79,6 +82,8 @@ impl<'a> Lexer<'a> {
         Token {
             kind,
             span: Span::new(start, self.pos),
+            // `next_token` sobreescribe esto según `saw_newline`.
+            newline_before: false,
         }
     }
 
@@ -89,6 +94,9 @@ impl<'a> Lexer<'a> {
         loop {
             match self.peek() {
                 Some(c) if c.is_whitespace() => {
+                    if c == '\n' {
+                        self.saw_newline = true;
+                    }
                     self.bump();
                 }
                 Some('/') if self.starts_with("///") && !self.starts_with("////") => {
@@ -121,7 +129,11 @@ impl<'a> Lexer<'a> {
                             depth += 1;
                         } else if self.eat("*/") {
                             depth -= 1;
-                        } else if self.bump().is_none() {
+                        } else if let Some(c) = self.bump() {
+                            if c == '\n' {
+                                self.saw_newline = true;
+                            }
+                        } else {
                             self.error(
                                 Diagnostic::error(
                                     codes::UNTERMINATED_COMMENT,
@@ -142,9 +154,19 @@ impl<'a> Lexer<'a> {
     // ---------- token principal ----------
 
     fn next_token(&mut self) -> Token {
-        if let Some(doc) = self.skip_trivia() {
-            return doc;
-        }
+        let doc = self.skip_trivia();
+        // Captura si hubo salto de línea en la trivia previa a este token.
+        let nl = self.saw_newline;
+        self.saw_newline = false;
+        let mut t = match doc {
+            Some(d) => d,
+            None => self.scan_token(),
+        };
+        t.newline_before = nl;
+        t
+    }
+
+    fn scan_token(&mut self) -> Token {
         let start = self.pos;
         let Some(c) = self.peek() else {
             return self.tok(TokenKind::Eof, start);
@@ -548,6 +570,7 @@ impl<'a> Lexer<'a> {
             ("*=", StarEq),
             ("/=", SlashEq),
             ("|>", Pipe),
+            ("&", Amp),
             ("..", DotDot),
             ("(", LParen),
             (")", RParen),

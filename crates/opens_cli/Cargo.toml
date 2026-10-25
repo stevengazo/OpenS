@@ -11,3 +11,4 @@ path = "src/main.rs"
 
 [dependencies]
 opens_syntax = { path = "../opens_syntax" }
+opens_parser = { path = "../opens_parser" }

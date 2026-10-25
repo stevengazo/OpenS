@@ -1,0 +1,11 @@
+[package]
+name = "opens_parser"
+description = "Parser y AST del lenguaje OpenS"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+# Única dependencia: el frontend léxico. Igual que él, sin dependencias
+# externas para compilar en nativo, wasm32 y móvil.
+[dependencies]
+opens_syntax = { path = "../opens_syntax" }

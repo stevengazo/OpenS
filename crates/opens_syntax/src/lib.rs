@@ -87,6 +87,34 @@ mod tests {
     }
 
     #[test]
+    fn ampersand_es_referencia_pero_doble_es_error() {
+        use TokenKind::*;
+        // `&` suelto es un token válido (referencia / tomar dirección).
+        assert_eq!(kinds("&x"), vec![Amp, Ident("x".into()), Eof]);
+        assert_eq!(
+            kinds("&var p"),
+            vec![Amp, Keyword(token::Keyword::Var), Ident("p".into()), Eof]
+        );
+        // `&&` sigue siendo el operador ajeno que se corrige a `and`.
+        assert_eq!(codes_of("a && b"), vec![codes::FOREIGN_OPERATOR]);
+    }
+
+    #[test]
+    fn palabras_clave_de_objetos_y_memoria() {
+        use TokenKind::*;
+        assert_eq!(
+            kinds("impl trait self box"),
+            vec![
+                Keyword(token::Keyword::Impl),
+                Keyword(token::Keyword::Trait),
+                Keyword(token::Keyword::SelfKw),
+                Keyword(token::Keyword::Box),
+                Eof
+            ]
+        );
+    }
+
+    #[test]
     fn string_con_interpolacion() {
         let k = kinds("\"hola {nombre}!\"");
         let TokenKind::Str(parts) = &k[0] else {

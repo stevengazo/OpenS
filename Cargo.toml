@@ -1,11 +1,12 @@
 [workspace]
 resolver = "2"
-members = ["crates/opens_syntax", "crates/opens_cli"]
+members = ["crates/opens_syntax", "crates/opens_parser", "crates/opens_cli"]
 
 [workspace.package]
 version = "0.1.0"
 edition = "2021"
-license = "MIT OR Apache-2.0"
+license = "MIT"
+authors = ["Steven Gazo Maliaño"]
 
 [profile.release]
 lto = true

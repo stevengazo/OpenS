@@ -1,12 +1,15 @@
 # OpenS
 
-Lenguaje de programación de alto nivel para construir aplicaciones de IA
-(agentes, servidores y clientes MCP, pipelines con LLMs), diseñado para que
-**los propios LLMs lo escriban bien**, y que compila a **web, móvil y nativo**
-sin sacrificar velocidad.
+Lenguaje de programación de alto nivel y **multiparadigma** (funcional,
+imperativo y orientado a objetos) para construir aplicaciones de IA (agentes,
+servidores y clientes MCP, pipelines con LLMs), diseñado para que **los propios
+LLMs lo escriban bien**, y que compila a **web, móvil y nativo** sin sacrificar
+velocidad. Incluye un modelo de memoria explícito estilo C++ (referencias `&T`,
+punteros crudos `*T` y heap con `box T`) para el código de bajo nivel.
 
-> Estado: v0.1 — frontend léxico funcionando (lexer + diagnósticos + CLI).
-> La especificación del lenguaje está en [`docs/SPEC.md`](docs/SPEC.md).
+> Estado: v0.2 — frontend léxico + **parser con AST y recuperación de errores**
+> (lexer, parser, diagnósticos y CLI). La especificación del lenguaje está en
+> [`docs/SPEC.md`](docs/SPEC.md).
 
 ```
 tool resumir_url(url: Url) -> Result<Resumen, Error>
@@ -28,11 +31,13 @@ Requiere Rust (https://rustup.rs).
 
 ```bash
 cargo test                                   # corre las pruebas
-cargo run -- check examples/resumidor.ops    # revisa un archivo
+cargo run -- check examples/resumidor.ops    # revisa léxico y sintaxis
+cargo run -- check examples/contador.ops     # objetos, memoria y closures
+cargo run -- parse examples/contador.ops     # muestra el AST
 cargo run -- check examples/errores.ops      # errores legibles, con arreglos
 cargo run -- check examples/errores.ops --json
 cargo run -- fix examples/errores.ops        # aplica los arreglos automáticos
-cargo run -- explain E0106                   # explica un código de error
+cargo run -- explain E0203                   # explica un código de error
 ```
 
 Extensión de archivo: `.ops`.
@@ -83,7 +88,8 @@ Reglas de diseño para la portabilidad:
 ## Hoja de ruta
 
 - [x] **0.1** Lexer, diagnósticos con código estable, salida JSON, `opens fix`
-- [ ] **0.2** Parser + AST + recuperación de errores
+- [x] **0.2** Parser + AST + recuperación de errores (`E02xx`, `opens parse`);
+      multiparadigma (closures, `impl`/`trait`) y memoria (`&T`, `*T`, `box T`)
 - [ ] **0.3** Chequeo de tipos, `Result`, inferencia local, capacidades
 - [ ] **0.4** Backend TypeScript: `tool` / `server` → servidor MCP real
 - [ ] **0.5** `ask<T>`, `prompt`, mocks y trazas; `opens test`
@@ -99,7 +105,12 @@ Reglas de diseño para la portabilidad:
 ```
 crates/
   opens_syntax/   tokens, lexer, diagnósticos (sin dependencias)
+  opens_parser/   parser + AST + recuperación de errores
   opens_cli/      binario `opens`
-docs/SPEC.md      especificación del lenguaje v0.1
+docs/SPEC.md      especificación del lenguaje v0.2
 examples/         programas de ejemplo
 ```
+
+## Licencia
+
+[MIT](LICENSE) © 2026 Steven Gazo Maliaño.

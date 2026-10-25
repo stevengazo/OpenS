@@ -1,0 +1,59 @@
+// Muestra los tres paradigmas de OpenS y su modelo de memoria.
+// Prueba: opens check examples/contador.ops   y   opens parse examples/contador.ops
+
+/// Un contador con estado mutable.
+type Contador {
+  valor: Int
+}
+
+/// Contrato (interfaz) que varios tipos pueden implementar.
+trait Resumible {
+  fn resumen(&self) -> String
+}
+
+// --- Orientado a objetos: métodos sobre el tipo ---
+impl Contador {
+  fn nuevo() -> Contador {
+    return Contador { valor: 0 }
+  }
+
+  fn leer(&self) -> Int {
+    return self.valor
+  }
+
+  fn subir(&var self) {
+    self.valor += 1
+  }
+}
+
+impl Resumible for Contador {
+  fn resumen(&self) -> String {
+    return "Contador en {self.valor}"
+  }
+}
+
+// --- Imperativo + memoria: escribir a través de una referencia mutable ---
+/// Incrementa el entero apuntado por `n`, sin copiarlo.
+fn incrementar(n: &var Int) {
+  *n += 1
+}
+
+// --- Funcional: una closure pasada como valor ---
+/// Duplica cada número de la lista.
+fn duplicar_todos(xs: List<Int>) -> List<Int> {
+  let doble = fn(x) => x * 2
+  return xs.map(doble)
+}
+
+test "objetos, memoria y closures" {
+  var c = Contador.nuevo()
+  c.subir()
+  c.subir()
+  assert c.leer() == 2
+
+  var n = 10
+  incrementar(&var n)
+  assert n == 11
+
+  assert duplicar_todos([1, 2, 3]) == [2, 4, 6]
+}

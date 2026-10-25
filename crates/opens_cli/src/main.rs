@@ -1,22 +1,40 @@
 //! `opens`: herramienta de línea de comandos de OpenS.
 
-use opens_syntax::diagnostic::{apply_fixes, codes, render_human, render_json};
+use opens_syntax::diagnostic::{apply_fixes, codes, render_human, render_json, Diagnostic, Severity};
 use opens_syntax::{lex, StrPart, Token, TokenKind};
 use std::process::ExitCode;
 
 const USAGE: &str = "\
-opens — compilador del lenguaje OpenS (v0.1, solo frontend léxico)
+opens — compilador del lenguaje OpenS (v0.2, frontend léxico + parser)
 
 USO:
-  opens check <archivo> [--json]   Revisa el archivo y muestra los errores
+  opens check <archivo> [--json]   Revisa léxico y sintaxis y muestra los errores
   opens fix <archivo>              Aplica los arreglos automáticos en el archivo
   opens lex <archivo> [--json]     Muestra los tokens (útil para depurar)
-  opens explain <código>           Explica un código de error (ej. E0106)
+  opens parse <archivo>            Muestra el AST (útil para depurar)
+  opens explain <código>           Explica un código de error (ej. E0106, E0203)
   opens version                    Muestra la versión
 
 Con --json, la salida sigue el esquema `opens.diagnostics/v1`,
 pensado para que agentes de IA lean, corrijan y recompilen solos.
 ";
+
+/// Explica un código de error, sea de léxico (E01xx) o de sintaxis (E02xx).
+fn explain(code: &str) -> Option<&'static str> {
+    codes::explain(code).or_else(|| opens_parser::parser::codes::explain(code))
+}
+
+/// Lexa y, si no hubo errores léxicos, parsea. Devuelve los tokens y todos
+/// los diagnósticos de ambas fases.
+fn analyze(src: &str) -> (Vec<Token>, Vec<Diagnostic>) {
+    let lexed = lex(src);
+    if lexed.diagnostics.iter().any(|d| d.severity == Severity::Error) {
+        // Con errores léxicos, los tokens son ruido: no parseamos todavía.
+        return (lexed.tokens, lexed.diagnostics);
+    }
+    let parsed = opens_parser::parse(lexed.tokens.clone());
+    (lexed.tokens, parsed.diagnostics)
+}
 
 fn main() -> ExitCode {
     let args: Vec<String> = std::env::args().skip(1).collect();
@@ -31,7 +49,8 @@ fn main() -> ExitCode {
         ["check", file] => check(file, json),
         ["fix", file] => fix(file),
         ["lex", file] => dump_tokens(file, json),
-        ["explain", code] => match codes::explain(code) {
+        ["parse", file] => dump_ast(file),
+        ["explain", code] => match explain(code) {
             Some(text) => {
                 println!("{code}: {text}");
                 ExitCode::SUCCESS
@@ -64,22 +83,22 @@ fn check(file: &str, json: bool) -> ExitCode {
         Ok(s) => s,
         Err(c) => return c,
     };
-    let r = lex(&src);
+    let (_tokens, diagnostics) = analyze(&src);
     if json {
-        println!("{}", render_json(file, &src, &r.diagnostics));
-    } else if r.diagnostics.is_empty() {
+        println!("{}", render_json(file, &src, &diagnostics));
+    } else if diagnostics.is_empty() {
         println!("✓ {file}: sin errores");
     } else {
-        eprint!("{}", render_human(file, &src, &r.diagnostics));
-        let fixable = r.diagnostics.iter().filter(|d| d.fix.is_some()).count();
+        eprint!("{}", render_human(file, &src, &diagnostics));
+        let fixable = diagnostics.iter().filter(|d| d.fix.is_some()).count();
         eprintln!(
             "{} error(es); {} se pueden arreglar con `opens fix {}`",
-            r.diagnostics.len(),
+            diagnostics.len(),
             fixable,
             file
         );
     }
-    if r.diagnostics.is_empty() {
+    if diagnostics.is_empty() {
         ExitCode::SUCCESS
     } else {
         ExitCode::from(1)
@@ -122,6 +141,28 @@ fn dump_tokens(file: &str, json: bool) -> ExitCode {
     }
     if !r.diagnostics.is_empty() {
         eprint!("{}", render_human(file, &src, &r.diagnostics));
+        return ExitCode::from(1);
+    }
+    ExitCode::SUCCESS
+}
+
+fn dump_ast(file: &str) -> ExitCode {
+    let src = match read(file) {
+        Ok(s) => s,
+        Err(c) => return c,
+    };
+    let (module, diags) = opens_parser::parse_source(&src);
+    match module {
+        Some(m) => {
+            // El AST deriva `Debug`; con `{:#?}` sale legible e indentado.
+            println!("{m:#?}");
+        }
+        None => {
+            eprintln!("no se parseó por errores léxicos:");
+        }
+    }
+    if !diags.is_empty() {
+        eprint!("{}", render_human(file, &src, &diags));
         return ExitCode::from(1);
     }
     ExitCode::SUCCESS

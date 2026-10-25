@@ -50,6 +50,7 @@ pub enum TokenKind {
     StarEq,
     SlashEq,
     Pipe, // |> (encadenar llamadas)
+    Amp,  // & (referencia / tomar dirección)
 
     /// Comentario de documentación `/// ...` (se conserva para el LSP).
     DocComment(String),
@@ -66,6 +67,11 @@ pub enum StrPart {
 pub struct Token {
     pub kind: TokenKind,
     pub span: Span,
+    /// `true` si hay al menos un salto de línea entre el token anterior y
+    /// este. OpenS separa sentencias por línea (no usa `;`), así que el parser
+    /// usa esta marca como terminador implícito: un encadenamiento postfijo
+    /// (`.`, `(`, `[`, `?`) no cruza un salto de línea.
+    pub newline_before: bool,
 }
 
 macro_rules! keywords {
@@ -89,6 +95,10 @@ keywords! {
     // Declaraciones
     Let => "let", Var => "var", Fn => "fn", Type => "type", Enum => "enum",
     Import => "import", Export => "export", Pub => "pub",
+    // Orientación a objetos (multiparadigma)
+    Impl => "impl", Trait => "trait", SelfKw => "self",
+    // Memoria (referencias, punteros, heap)
+    Box => "box",
     // Construcciones de IA / MCP
     Tool => "tool", Server => "server", Client => "client", Expose => "expose",
     Prompt => "prompt", Agent => "agent", Uses => "uses",
@@ -157,6 +167,7 @@ impl TokenKind {
             StarEq => "*=",
             SlashEq => "/=",
             Pipe => "|>",
+            Amp => "&",
             _ => return None,
         })
     }
