@@ -148,7 +148,7 @@
 <body>
   <header class="hero">
     <div class="wrap">
-      <span class="badge">v0.2 · lexer + parser (AST &amp; error recovery)</span>
+      <span class="badge">v0.3 · lexer + parser + type &amp; capability checking</span>
       <h1>The language <span class="grad">LLMs write well</span>.</h1>
       <p class="lede">
         OpenS is a high-level, multi-paradigm language for building AI software —
@@ -239,8 +239,8 @@
       <ol class="road">
         <li class="done">Lexer, stable error codes, JSON output, <code>opens fix</code> <span class="tag">done</span></li>
         <li class="done">Parser + AST + error recovery; multi-paradigm &amp; memory syntax <span class="tag">done</span></li>
-        <li>Type checking, <code>Result</code>, local inference, capabilities <span class="tag">next</span></li>
-        <li>TypeScript backend: <code>tool</code> / <code>server</code> → a real MCP server</li>
+        <li class="done">Type checking, local inference, <code>Result</code>/<code>Option</code>, capabilities <span class="tag">done</span></li>
+        <li>TypeScript backend: <code>tool</code> / <code>server</code> → a real MCP server <span class="tag">next</span></li>
         <li><code>ask&lt;T&gt;</code>, <code>prompt</code>, mocks &amp; traces; <code>opens test</code></li>
         <li>LSP for VS Code + official formatter</li>
         <li>WebAssembly backend + web playground</li>

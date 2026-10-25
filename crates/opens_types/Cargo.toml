@@ -1,0 +1,10 @@
+[package]
+name = "opens_types"
+description = "Chequeo de tipos y capacidades del lenguaje OpenS"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[dependencies]
+opens_syntax = { path = "../opens_syntax" }
+opens_parser = { path = "../opens_parser" }

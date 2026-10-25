@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "opens_parser",
  "opens_syntax",
+ "opens_types",
 ]
 
 [[package]]
@@ -20,3 +21,11 @@ dependencies = [
 [[package]]
 name = "opens_syntax"
 version = "0.1.0"
+
+[[package]]
+name = "opens_types"
+version = "0.1.0"
+dependencies = [
+ "opens_parser",
+ "opens_syntax",
+]

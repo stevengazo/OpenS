@@ -5,10 +5,10 @@ use opens_syntax::{lex, StrPart, Token, TokenKind};
 use std::process::ExitCode;
 
 const USAGE: &str = "\
-opens — compilador del lenguaje OpenS (v0.2, frontend léxico + parser)
+opens — compilador del lenguaje OpenS (v0.3: léxico + sintaxis + tipos)
 
 USO:
-  opens check <archivo> [--json]   Revisa léxico y sintaxis y muestra los errores
+  opens check <archivo> [--json]   Revisa léxico, sintaxis, tipos y capacidades
   opens fix <archivo>              Aplica los arreglos automáticos en el archivo
   opens lex <archivo> [--json]     Muestra los tokens (útil para depurar)
   opens parse <archivo>            Muestra el AST (útil para depurar)
@@ -19,21 +19,27 @@ Con --json, la salida sigue el esquema `opens.diagnostics/v1`,
 pensado para que agentes de IA lean, corrijan y recompilen solos.
 ";
 
-/// Explica un código de error, sea de léxico (E01xx) o de sintaxis (E02xx).
+/// Explica un código de error de léxico (E01xx), sintaxis (E02xx), tipos
+/// (E03xx) o capacidades (E04xx).
 fn explain(code: &str) -> Option<&'static str> {
-    codes::explain(code).or_else(|| opens_parser::parser::codes::explain(code))
+    codes::explain(code)
+        .or_else(|| opens_parser::parser::codes::explain(code))
+        .or_else(|| opens_types::codes::explain(code))
 }
 
-/// Lexa y, si no hubo errores léxicos, parsea. Devuelve los tokens y todos
-/// los diagnósticos de ambas fases.
+/// Analiza una fuente en cascada: léxico → sintaxis → tipos/capacidades.
+/// Cada fase solo corre si la anterior no tuvo errores (así no hay ruido).
 fn analyze(src: &str) -> (Vec<Token>, Vec<Diagnostic>) {
     let lexed = lex(src);
     if lexed.diagnostics.iter().any(|d| d.severity == Severity::Error) {
-        // Con errores léxicos, los tokens son ruido: no parseamos todavía.
         return (lexed.tokens, lexed.diagnostics);
     }
     let parsed = opens_parser::parse(lexed.tokens.clone());
-    (lexed.tokens, parsed.diagnostics)
+    if parsed.diagnostics.iter().any(|d| d.severity == Severity::Error) {
+        return (lexed.tokens, parsed.diagnostics);
+    }
+    let type_diags = opens_types::check_module(&parsed.module);
+    (lexed.tokens, type_diags)
 }
 
 fn main() -> ExitCode {

@@ -100,6 +100,13 @@ mod tests {
     }
 
     #[test]
+    fn bom_al_inicio_se_ignora() {
+        use TokenKind::*;
+        // Un archivo UTF-8 con BOM (común en Windows) no debe dar error.
+        assert_eq!(kinds("\u{FEFF}let x"), vec![Keyword(token::Keyword::Let), Ident("x".into()), Eof]);
+    }
+
+    #[test]
     fn palabras_clave_de_objetos_y_memoria() {
         use TokenKind::*;
         assert_eq!(

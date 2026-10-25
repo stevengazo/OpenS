@@ -93,6 +93,11 @@ impl<'a> Lexer<'a> {
     fn skip_trivia(&mut self) -> Option<Token> {
         loop {
             match self.peek() {
+                // BOM UTF-8 / espacio de ancho cero: lo ignoramos (editores de
+                // Windows suelen anteponerlo al guardar en UTF-8).
+                Some('\u{FEFF}') => {
+                    self.bump();
+                }
                 Some(c) if c.is_whitespace() => {
                     if c == '\n' {
                         self.saw_newline = true;

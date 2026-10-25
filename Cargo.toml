@@ -1,6 +1,11 @@
 [workspace]
 resolver = "2"
-members = ["crates/opens_syntax", "crates/opens_parser", "crates/opens_cli"]
+members = [
+  "crates/opens_syntax",
+  "crates/opens_parser",
+  "crates/opens_types",
+  "crates/opens_cli",
+]
 
 [workspace.package]
 version = "0.1.0"

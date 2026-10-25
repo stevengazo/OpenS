@@ -7,8 +7,9 @@ LLMs lo escriban bien**, y que compila a **web, móvil y nativo** sin sacrificar
 velocidad. Incluye un modelo de memoria explícito estilo C++ (referencias `&T`,
 punteros crudos `*T` y heap con `box T`) para el código de bajo nivel.
 
-> Estado: v0.2 — frontend léxico + **parser con AST y recuperación de errores**
-> (lexer, parser, diagnósticos y CLI). La especificación del lenguaje está en
+> Estado: v0.3 — frontend léxico + parser con AST + **chequeo de tipos y
+> capacidades** (lexer, parser, type checker, diagnósticos y CLI). El compilador
+> corre en Linux, Windows y macOS. La especificación del lenguaje está en
 > [`docs/SPEC.md`](docs/SPEC.md).
 
 ```
@@ -90,7 +91,8 @@ Reglas de diseño para la portabilidad:
 - [x] **0.1** Lexer, diagnósticos con código estable, salida JSON, `opens fix`
 - [x] **0.2** Parser + AST + recuperación de errores (`E02xx`, `opens parse`);
       multiparadigma (closures, `impl`/`trait`) y memoria (`&T`, `*T`, `box T`)
-- [ ] **0.3** Chequeo de tipos, `Result`, inferencia local, capacidades
+- [x] **0.3** Chequeo de tipos e inferencia local, `Result`/`Option`, y
+      capacidades (`uses`); diagnósticos `E03xx`/`E04xx`
 - [ ] **0.4** Backend TypeScript: `tool` / `server` → servidor MCP real
 - [ ] **0.5** `ask<T>`, `prompt`, mocks y trazas; `opens test`
 - [ ] **0.6** LSP para VS Code + formateador oficial
@@ -106,8 +108,9 @@ Reglas de diseño para la portabilidad:
 crates/
   opens_syntax/   tokens, lexer, diagnósticos (sin dependencias)
   opens_parser/   parser + AST + recuperación de errores
+  opens_types/    chequeo de tipos y capacidades (`uses`)
   opens_cli/      binario `opens`
-docs/SPEC.md      especificación del lenguaje v0.2
+docs/SPEC.md      especificación del lenguaje
 examples/         programas de ejemplo
 ```
 
